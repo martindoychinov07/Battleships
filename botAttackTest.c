@@ -4,7 +4,7 @@
 
 #define BOARD_SIZE 10
 
-int botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
+void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
     int y = rand() % BOARD_SIZE;
 
