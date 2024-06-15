@@ -44,7 +44,7 @@ bool destroyed(Player *player, Ship *ship);
 void fill_board(Player *player, Ship ship);
 void load_configuration(Player *player, const char *filename);
 void manual_configuration(Player *player);
-void play_game(Player *player1, Player *player2);
+void play_game(Player *player1, Player *player2, FILE *replayFile);
 bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
@@ -53,6 +53,9 @@ void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
 int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
+
+FILE* initializeReplay();
+void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber);
 
 int main() {
     char mode;
@@ -94,7 +97,9 @@ int main() {
             manual_configuration(&player2);
         }
 
-        play_game(&player1, &player2);
+        FILE* replayFile = initializeReplay();
+
+        play_game(&player1, &player2, replayFile);
     }
     else if(mode == 's') {
         Player player, bot;
@@ -132,7 +137,9 @@ int main() {
             // randomShips(bot.);
         }
 
-        play_game(&player, &player);
+        FILE* replayFile = initializeReplay();
+
+        play_game(&player, &player, replayFile);
     }
 
     return 0;
@@ -142,13 +149,13 @@ void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
     int y = rand() % BOARD_SIZE;
 
-    while (playerBoard[y][x] == 'H' || playerBoard[y][x] == 'M') {
+    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == 'M') {
         x = rand() % BOARD_SIZE;
         y = rand() % BOARD_SIZE;
     }
 
     if (playerBoard[y][x] == '-') {
-        playerBoard[y][x] = 'H';
+        playerBoard[y][x] = 'X';
     }
 }
 
@@ -377,9 +384,10 @@ void manual_configuration(Player *player) {
     }
 }
 
-void play_game(Player *player1, Player *player2) {
+void play_game(Player *player1, Player *player2, FILE *replayFile) {
     Player *current_player = player1;
     Player *opponent = player2;
+    int step = 1;
 
     while (true) {
         bool hit = true;
@@ -392,7 +400,9 @@ void play_game(Player *player1, Player *player2) {
         while (hit) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
+            recordStep(replayFile, player1, player2, step++);
             view_board(current_player, false);
+            
         }
 
         Player *temp = current_player;
@@ -530,3 +540,52 @@ bool all_ships_destroyed(Player *player) {
     return true;
 }
 
+FILE* initializeReplay(){
+    char choice;
+    printf("\nWould you like to save a replay of the game? (y/n/default - n): ");
+    scanf(" %c", &choice);
+
+    if(choice == 'y'){
+        char filename[100];
+        while(true){
+            printf("Enter filename: ");
+            scanf("%s", filename);
+            getchar();
+
+            FILE* f = fopen(filename, "r");
+            fseek(f, 0, SEEK_END);
+            if(ftell(f) != 0){
+                printf("File isn't empty. Would you like to override it? (y/n/default - n): ");
+                scanf("%c", &choice);
+                if(choice == 'y'){
+                    fclose(f);
+                    f = fopen(filename, "w");
+                    return f;
+                }
+            }else{
+                fclose(f);
+                f = fopen(filename, "w");
+                return f;
+            }
+        }   
+    }else return NULL;
+}
+
+void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber){
+    if(file == NULL)return;
+    fprintf(file, "%d\n", stepNumber);
+    fprintf(file, "p1\n");
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for(int j = 0; j < BOARD_SIZE; j++) {
+            fprintf(file, "%c ", p1->own_display[i][j]);
+        }
+        fprintf(file,"\n");
+    }
+    fprintf(file, "\np2\n");
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for(int j = 0; j < BOARD_SIZE; j++) {
+            fprintf(file, "%c ", p2->own_display[i][j]);
+        }
+        fprintf(file,"\n");
+    }
+}
