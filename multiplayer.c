@@ -116,6 +116,19 @@ int main() {
         }
 
         randomShips(bot.own_display);
+        
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                bot.board[i][j] = bot.own_display[i][j];
+            }
+        }
+
+        // for(int i = 0; i < BOARD_SIZE; i++) {
+        //     for(int j = 0; j < BOARD_SIZE; j++) {
+        //         printf("%c", bot.own_display[i][j]);
+        //     }
+        //     printf("\n");
+        // }
 
         play_game_vs_bot(&player, &bot);
     }
