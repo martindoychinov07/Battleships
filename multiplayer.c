@@ -21,7 +21,7 @@ typedef struct {
 typedef struct {
     int num_ships;
     Ship ships[NUM_SHIPS];
-    int board[BOARD_SIZE][BOARD_SIZE];
+    char board[BOARD_SIZE][BOARD_SIZE];
     char display[BOARD_SIZE][BOARD_SIZE]; 
     char own_display[BOARD_SIZE][BOARD_SIZE]; 
 } Player;
@@ -45,11 +45,12 @@ void fill_board(Player *player, Ship ship);
 void load_configuration(Player *player, const char *filename);
 void manual_configuration(Player *player);
 void play_game(Player *player1, Player *player2, FILE *replayFile);
+void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile);
 bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
 bool all_ships_destroyed(Player *player);
-void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
+bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
 int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
@@ -108,7 +109,7 @@ int main() {
         initialize_board(&bot);
 
         char choice;
-        printf("Player 1: Do you want to load a configuration from a file? (y/n): ");
+        printf("Player: Do you want to load a configuration from a file? (y/n): ");
         scanf(" %c", &choice);
         if (choice == 'y') {
             char filename[100];
@@ -119,44 +120,34 @@ int main() {
             manual_configuration(&player);
         }
 
-        printf("Player 2: Do you want to load a configuration from a file? (y/n): ");
-        scanf(" %c", &choice);
-        if (choice == 'y') {
-            char filename[100];
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            load_configuration(&bot, filename);
-        } else {
-            // 
-            // 
-            // 
-            // 
-            // 
-            // 
-            // 
-            // randomShips(bot.);
-        }
+        randomShips(bot.own_display);
 
         FILE* replayFile = initializeReplay();
 
-        play_game(&player, &player, replayFile);
+        play_game_vs_bot(&player, &bot, replayFile);
     }
 
     return 0;
 }
 
-void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
+bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
     int y = rand() % BOARD_SIZE;
 
-    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == 'M') {
+    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == '*') {
         x = rand() % BOARD_SIZE;
         y = rand() % BOARD_SIZE;
     }
 
-    if (playerBoard[y][x] == '-') {
+    if (playerBoard[y][x] == 'S') {
         playerBoard[y][x] = 'X';
+        return true;
     }
+    else {
+        playerBoard[y][x] = '*';
+    }
+
+    return false;
 }
 
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y) {
@@ -169,7 +160,7 @@ int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y) {
                 int tx = x + xi;
                 int ty = y + yi;
                 if (0 <= tx && tx < BOARD_SIZE && 0 <= ty && ty < BOARD_SIZE) {
-                    if (board[ty][tx] != ' ') {
+                    if (board[ty][tx] != 'O') {
                         return 0;
                     }
                 }
@@ -206,27 +197,29 @@ void randomShips(char board[BOARD_SIZE][BOARD_SIZE]) {
 
             for (int m = 0; m < ships[i].size; m++) {
                 if (dir == 'U') {
-                    board[y - m][x] = '|';
+                    board[y - m][x] = 'S';
                 }
                 else if (dir == 'D') {
-                    board[y + m][x] = '|';
+                    board[y + m][x] = 'S';
                 }
                 else if (dir == 'L') {
-                    board[y][x - m] = '-';
+                    board[y][x - m] = 'S';
                 }
                 else if (dir == 'R') {
-                    board[y][x + m] = '-';
+                    board[y][x + m] = 'S';
                 }
             }
         }
     }
+
+    print_board(board);
 }
 
 void initialize_board(Player *player) {
     player->num_ships = 0;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            player->board[i][j] = 0;
+            player->board[i][j] = 'O';
             player->display[i][j] = 'O';
             player->own_display[i][j] = 'O';
         }
@@ -235,8 +228,8 @@ void initialize_board(Player *player) {
 
 void print_board(char board[BOARD_SIZE][BOARD_SIZE]) {
     printf("\n  ");
-    for (int i = 1; i <= BOARD_SIZE; i++) {
-        printf("%d ", i);
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        printf("%d ", i + 1);
     }
     printf("\n");
 
@@ -257,7 +250,7 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row][start.col + i] != 0) {
+            if (player->board[start.row][start.col + i] != 'O') {
                 printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + 1, start.col + i + 1);
                 return false;
             }
@@ -268,7 +261,7 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row + i][start.col] != 0) {
+            if (player->board[start.row + i][start.col] != 'O') {
                 printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + i + 1, start.col + 1);
                 return false;
             }
@@ -308,7 +301,7 @@ bool place_ship(Player *player, int size, char orientation, Coordinate start) {
 
 void fill_board(Player *player, Ship ship) {
     for (int i = 0; i < ship.size; i++) {
-        player->board[ship.coordinates[i].row][ship.coordinates[i].col] = 1;
+        player->board[ship.coordinates[i].row][ship.coordinates[i].col] = 'S';
         player->own_display[ship.coordinates[i].row][ship.coordinates[i].col] = 'S';
     }
 }
@@ -326,12 +319,12 @@ void load_configuration(Player *player, const char *filename) {
         char orientation;
         Coordinate start;
         if (sscanf(line, "%d %c %d %d", &size, &orientation, &start.row, &start.col) == 4) {
-            start.row--; 
-            start.col--; 
+            start.row--;
+            start.col--;
             printf("Placing ship of size %d, orientation %c, at (%d, %d)\n", size, orientation, start.row + 1, start.col + 1);
             if (!place_ship(player, size, orientation, start)) {
                 fprintf(stderr, "Error placing ship from file at (%d, %d) with size %d and orientation %c.\n", start.row + 1, start.col + 1, size, orientation);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         } else {
             fprintf(stderr, "Invalid line format: %s", line);
@@ -391,18 +384,17 @@ void play_game(Player *player1, Player *player2, FILE *replayFile) {
 
     while (true) {
         bool hit = true;
-
-        if (all_ships_destroyed(opponent)) {
-            printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
-            break;
-        }
-
         while (hit) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
-            recordStep(replayFile, player1, player2, step++);
             view_board(current_player, false);
-            
+            recordStep(replayFile, player1, player2, step++);
+        }
+
+        if (all_ships_destroyed(opponent)) {
+            printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
+            fclose(replayFile);
+            break;
         }
 
         Player *temp = current_player;
@@ -410,6 +402,61 @@ void play_game(Player *player1, Player *player2, FILE *replayFile) {
         opponent = temp;
     }
 }
+
+// 
+// 
+// 
+
+void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile) {
+    Player *current_player = player;
+    Player *opponent = bot;
+    int step = 1;
+
+    while (true) {
+        bool hit = true;
+        while (hit) {
+            printf("Player %d's turn:\n", (current_player == player) ? 1 : 2);
+            if(current_player == bot) {
+                hit = botAttack(player->own_display);
+
+                for(int i = 0; i < BOARD_SIZE; i++) {
+                    for(int j = 0; j < BOARD_SIZE; j++) {
+                        printf("%c", player->own_display[i][j]);
+                    }
+                    printf("\n");
+                }
+            }
+            else {
+                hit = player_turn(current_player, opponent);
+            }
+            view_board(player, false);
+            if(current_player == player)recordStep(replayFile, player, bot, step++);
+        }
+
+        bool destroyed = true;
+
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                if(bot->own_display[i][j] != 'O') {
+                    destroyed = false;
+                }
+            }
+        }
+
+        if (destroyed || all_ships_destroyed(player)) {
+            printf("Player %d wins!\n", (current_player == player) ? 1 : 2);
+            fclose(replayFile);
+            break;
+        }
+
+        Player *temp = current_player;
+        current_player = opponent;
+        opponent = temp;
+    }
+}
+// 
+// 
+// 
 
 bool player_turn(Player *current, Player *opponent) {
     Coordinate guess;
@@ -427,11 +474,11 @@ bool player_turn(Player *current, Player *opponent) {
         }
     }
 
-    if (opponent->board[guess.row][guess.col] == 1) {
+    if (opponent->board[guess.row][guess.col] == 'S') {
         printf("Hit!\n");
         current->display[guess.row][guess.col] = 'X';
         opponent->own_display[guess.row][guess.col] = 'X';
-        opponent->board[guess.row][guess.col] = 0;
+        opponent->board[guess.row][guess.col] = 'O';
 
         for (int i = 0; i < opponent->num_ships; i++) {
             if (contains(opponent->ships[i], guess)) {
@@ -468,7 +515,7 @@ void edit_ship(Player *player) {
     Coordinate start = ship->coordinates[0];
 
     for (int i = 0; i < size; i++) {
-        player->board[ship->coordinates[i].row][ship->coordinates[i].col] = 0;
+        player->board[ship->coordinates[i].row][ship->coordinates[i].col] = 'O';
         player->own_display[ship->coordinates[i].row][ship->coordinates[i].col] = 'O';
     }
 
@@ -539,7 +586,6 @@ bool all_ships_destroyed(Player *player) {
     }
     return true;
 }
-
 FILE* initializeReplay(){
     char choice;
     printf("\nWould you like to save a replay of the game? (y/n/default - n): ");
@@ -552,7 +598,7 @@ FILE* initializeReplay(){
             scanf("%s", filename);
             getchar();
 
-            FILE* f = fopen(filename, "r");
+            FILE* f = fopen(filename, "r+");
             fseek(f, 0, SEEK_END);
             if(ftell(f) != 0){
                 printf("File isn't empty. Would you like to override it? (y/n/default - n): ");
@@ -573,6 +619,7 @@ FILE* initializeReplay(){
 
 void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber){
     if(file == NULL)return;
+
     fprintf(file, "%d\n", stepNumber);
     fprintf(file, "p1\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -581,11 +628,12 @@ void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber){
         }
         fprintf(file,"\n");
     }
-    fprintf(file, "\np2\n");
+    fprintf(file, "p2\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
         for(int j = 0; j < BOARD_SIZE; j++) {
             fprintf(file, "%c ", p2->own_display[i][j]);
         }
         fprintf(file,"\n");
     }
+    printf("\nWrote in file");
 }
