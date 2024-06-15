@@ -45,6 +45,7 @@ void fill_board(Player *player, Ship ship);
 void load_configuration(Player *player, const char *filename);
 void manual_configuration(Player *player);
 void play_game(Player *player1, Player *player2);
+void play_game_vs_bot(Player *player, Player *bot);
 bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
@@ -114,17 +115,9 @@ int main() {
             manual_configuration(&player);
         }
 
-        // TODO
-        // 
-        // 
-        // 
-        // 
-        // 
-        // 
-        // randomShips(bot.);
+        randomShips(bot.board);
 
-
-        play_game(&player, &player);
+        play_game_vs_bot(&player, &bot);
     }
 
     return 0;
@@ -154,7 +147,7 @@ int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y) {
                 int tx = x + xi;
                 int ty = y + yi;
                 if (0 <= tx && tx < BOARD_SIZE && 0 <= ty && ty < BOARD_SIZE) {
-                    if (board[ty][tx] != ' ') {
+                    if (board[ty][tx] != 'O') {
                         return 0;
                     }
                 }
@@ -205,6 +198,8 @@ void randomShips(char board[BOARD_SIZE][BOARD_SIZE]) {
             }
         }
     }
+
+    print_board(board);
 }
 
 void initialize_board(Player *player) {
@@ -220,13 +215,13 @@ void initialize_board(Player *player) {
 
 void print_board(char board[BOARD_SIZE][BOARD_SIZE]) {
     printf("\n  ");
-    for (int i = 1; i <= BOARD_SIZE; i++) {
+    for (int i = 0; i < BOARD_SIZE; i++) {
         printf("%d ", i);
     }
     printf("\n");
 
     for (int r = 0; r < BOARD_SIZE; r++) {
-        printf("%d ", r + 1);
+        printf("%d ", r);
         for (int c = 0; c < BOARD_SIZE; c++) {
             printf("%c ", board[r][c]);
         }
@@ -391,6 +386,41 @@ void play_game(Player *player1, Player *player2) {
         opponent = temp;
     }
 }
+
+// 
+// 
+// 
+
+void play_game_vs_bot(Player *player, Player *bot) {
+    Player *current_player = player;
+    Player *opponent = bot;
+
+    while (true) {
+        bool hit = true;
+        while (hit) {
+            printf("Player %d's turn:\n", (current_player == player) ? 1 : 2);
+            if(current_player == bot) {
+                botAttack(player->board);
+            }
+            else {
+                hit = player_turn(current_player, opponent);
+            }
+            view_board(current_player, false);
+        }
+
+        if (all_ships_destroyed(opponent)) {
+            printf("Player %d wins!\n", (current_player == player) ? 1 : 2);
+            break;
+        }
+
+        Player *temp = current_player;
+        current_player = opponent;
+        opponent = temp;
+    }
+}
+// 
+// 
+// 
 
 bool player_turn(Player *current, Player *opponent) {
     Coordinate guess;
