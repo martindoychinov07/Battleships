@@ -127,13 +127,13 @@ void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
     int y = rand() % BOARD_SIZE;
 
-    while (playerBoard[y][x] == 'H' || playerBoard[y][x] == 'M') {
+    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == 'M') {
         x = rand() % BOARD_SIZE;
         y = rand() % BOARD_SIZE;
     }
 
     if (playerBoard[y][x] == '-') {
-        playerBoard[y][x] = 'H';
+        playerBoard[y][x] = 'X';
     }
 }
 
