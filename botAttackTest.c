@@ -16,6 +16,9 @@ void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     if (playerBoard[y][x] == '-') {
         playerBoard[y][x] = 'H';
     }
+    else {
+        playerBoard[y][x] = 'M';
+    }
 }
 
 int main() {
