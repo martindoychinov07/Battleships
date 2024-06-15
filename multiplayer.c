@@ -21,7 +21,7 @@ typedef struct {
 typedef struct {
     int num_ships;
     Ship ships[NUM_SHIPS];
-    int board[BOARD_SIZE][BOARD_SIZE];
+    char board[BOARD_SIZE][BOARD_SIZE];
     char display[BOARD_SIZE][BOARD_SIZE]; 
     char own_display[BOARD_SIZE][BOARD_SIZE]; 
 } Player;
@@ -103,7 +103,7 @@ int main() {
         initialize_board(&bot);
 
         char choice;
-        printf("Player 1: Do you want to load a configuration from a file? (y/n): ");
+        printf("Player: Do you want to load a configuration from a file? (y/n): ");
         scanf(" %c", &choice);
         if (choice == 'y') {
             char filename[100];
@@ -114,23 +114,15 @@ int main() {
             manual_configuration(&player);
         }
 
-        printf("Player 2: Do you want to load a configuration from a file? (y/n): ");
-        scanf(" %c", &choice);
-        if (choice == 'y') {
-            char filename[100];
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            load_configuration(&bot, filename);
-        } else {
-            // 
-            // 
-            // 
-            // 
-            // 
-            // 
-            // 
-            // randomShips(bot.);
-        }
+        // TODO
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // randomShips(bot.);
+
 
         play_game(&player, &player);
     }
@@ -219,7 +211,7 @@ void initialize_board(Player *player) {
     player->num_ships = 0;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            player->board[i][j] = 0;
+            player->board[i][j] = 'O';
             player->display[i][j] = 'O';
             player->own_display[i][j] = 'O';
         }
@@ -250,7 +242,7 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row][start.col + i] != 0) {
+            if (player->board[start.row][start.col + i] != 'O') {
                 printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + 1, start.col + i + 1);
                 return false;
             }
@@ -261,7 +253,7 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row + i][start.col] != 0) {
+            if (player->board[start.row + i][start.col] != 'O') {
                 printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + i + 1, start.col + 1);
                 return false;
             }
@@ -301,7 +293,7 @@ bool place_ship(Player *player, int size, char orientation, Coordinate start) {
 
 void fill_board(Player *player, Ship ship) {
     for (int i = 0; i < ship.size; i++) {
-        player->board[ship.coordinates[i].row][ship.coordinates[i].col] = 1;
+        player->board[ship.coordinates[i].row][ship.coordinates[i].col] = 'S';
         player->own_display[ship.coordinates[i].row][ship.coordinates[i].col] = 'S';
     }
 }
@@ -319,12 +311,12 @@ void load_configuration(Player *player, const char *filename) {
         char orientation;
         Coordinate start;
         if (sscanf(line, "%d %c %d %d", &size, &orientation, &start.row, &start.col) == 4) {
-            start.row--; 
-            start.col--; 
+            start.row--;
+            start.col--;
             printf("Placing ship of size %d, orientation %c, at (%d, %d)\n", size, orientation, start.row + 1, start.col + 1);
             if (!place_ship(player, size, orientation, start)) {
                 fprintf(stderr, "Error placing ship from file at (%d, %d) with size %d and orientation %c.\n", start.row + 1, start.col + 1, size, orientation);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         } else {
             fprintf(stderr, "Invalid line format: %s", line);
@@ -383,16 +375,15 @@ void play_game(Player *player1, Player *player2) {
 
     while (true) {
         bool hit = true;
-
-        if (all_ships_destroyed(opponent)) {
-            printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
-            break;
-        }
-
         while (hit) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
             view_board(current_player, false);
+        }
+
+        if (all_ships_destroyed(opponent)) {
+            printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
+            break;
         }
 
         Player *temp = current_player;
@@ -417,11 +408,11 @@ bool player_turn(Player *current, Player *opponent) {
         }
     }
 
-    if (opponent->board[guess.row][guess.col] == 1) {
+    if (opponent->board[guess.row][guess.col] == 'S') {
         printf("Hit!\n");
         current->display[guess.row][guess.col] = 'X';
         opponent->own_display[guess.row][guess.col] = 'X';
-        opponent->board[guess.row][guess.col] = 0;
+        opponent->board[guess.row][guess.col] = 'O';
 
         for (int i = 0; i < opponent->num_ships; i++) {
             if (contains(opponent->ships[i], guess)) {
@@ -458,7 +449,7 @@ void edit_ship(Player *player) {
     Coordinate start = ship->coordinates[0];
 
     for (int i = 0; i < size; i++) {
-        player->board[ship->coordinates[i].row][ship->coordinates[i].col] = 0;
+        player->board[ship->coordinates[i].row][ship->coordinates[i].col] = 'O';
         player->own_display[ship->coordinates[i].row][ship->coordinates[i].col] = 'O';
     }
 
@@ -529,4 +520,3 @@ bool all_ships_destroyed(Player *player) {
     }
     return true;
 }
-
