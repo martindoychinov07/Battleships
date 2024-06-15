@@ -50,7 +50,7 @@ bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
 bool all_ships_destroyed(Player *player);
-void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
+bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
 int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
@@ -115,7 +115,7 @@ int main() {
             manual_configuration(&player);
         }
 
-        randomShips(bot.board);
+        randomShips(bot.own_display);
 
         play_game_vs_bot(&player, &bot);
     }
@@ -123,18 +123,24 @@ int main() {
     return 0;
 }
 
-void botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
+bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
     int y = rand() % BOARD_SIZE;
 
-    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == 'M') {
+    while (playerBoard[y][x] == 'X' || playerBoard[y][x] == '*') {
         x = rand() % BOARD_SIZE;
         y = rand() % BOARD_SIZE;
     }
 
-    if (playerBoard[y][x] == '-') {
+    if (playerBoard[y][x] == 'S') {
         playerBoard[y][x] = 'X';
+        return true;
     }
+    else {
+        playerBoard[y][x] = '*';
+    }
+
+    return false;
 }
 
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y) {
@@ -184,16 +190,16 @@ void randomShips(char board[BOARD_SIZE][BOARD_SIZE]) {
 
             for (int m = 0; m < ships[i].size; m++) {
                 if (dir == 'U') {
-                    board[y - m][x] = '|';
+                    board[y - m][x] = 'S';
                 }
                 else if (dir == 'D') {
-                    board[y + m][x] = '|';
+                    board[y + m][x] = 'S';
                 }
                 else if (dir == 'L') {
-                    board[y][x - m] = '-';
+                    board[y][x - m] = 'S';
                 }
                 else if (dir == 'R') {
-                    board[y][x + m] = '-';
+                    board[y][x + m] = 'S';
                 }
             }
         }
@@ -400,15 +406,32 @@ void play_game_vs_bot(Player *player, Player *bot) {
         while (hit) {
             printf("Player %d's turn:\n", (current_player == player) ? 1 : 2);
             if(current_player == bot) {
-                botAttack(player->board);
+                hit = botAttack(player->own_display);
+
+                for(int i = 0; i < BOARD_SIZE; i++) {
+                    for(int j = 0; j < BOARD_SIZE; j++) {
+                        printf("%c", player->own_display[i][j]);
+                    }
+                    printf("\n");
+                }
             }
             else {
                 hit = player_turn(current_player, opponent);
             }
-            view_board(current_player, false);
+            view_board(player, false);
         }
 
-        if (all_ships_destroyed(opponent)) {
+        bool destroyed = true;
+
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                if(bot->own_display[i][j] != 'O') {
+                    destroyed = false;
+                }
+            }
+        }
+
+        if (destroyed || all_ships_destroyed(player)) {
             printf("Player %d wins!\n", (current_player == player) ? 1 : 2);
             break;
         }
