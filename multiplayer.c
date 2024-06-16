@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #define BOARD_SIZE 10
 #define NUM_SHIPS 10
@@ -56,6 +57,7 @@ int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char d
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
 
 int main() {
+    srand(time(NULL));
     char mode;
 
     printf("To play multiplayer press(m) and to play singleplayer press(s):");
@@ -123,12 +125,12 @@ int main() {
             }
         }
 
-        // for(int i = 0; i < BOARD_SIZE; i++) {
-        //     for(int j = 0; j < BOARD_SIZE; j++) {
-        //         printf("%c", bot.own_display[i][j]);
-        //     }
-        //     printf("\n");
-        // }
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                printf("%c ", bot.own_display[i][j]);
+            }
+            printf("\n");
+        }
 
         play_game_vs_bot(&player, &bot);
     }
