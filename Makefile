@@ -1,14 +1,8 @@
-game: game.c
-	gcc game.c -o game.exe
+main.exe: main.c game.c replay.c encryption.c
+	gcc main.c game.c replay.c encryption.c -o main.exe
 
-playGame: game.exe
-	./game.exe
-
-replay: replay.c
-	gcc replay.c -o replay.exe
-
-playReplay: replay.exe
-	./replay.exe
+startMain: main.exe
+	./main.exe
 
 clean:
 	del *.exe
