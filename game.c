@@ -264,9 +264,23 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row][start.col + i] != 'O') {
-                printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + 1, start.col + i + 1);
+            int row = start.row;
+            int col = start.col + i;
+            if (player->board[row][col] != 'O') {
+                printf("Error: Ship overlaps with another ship at (%d, %d).\n", row + 1, col + 1);
                 return false;
+            }
+            for (int xi = -1; xi <= 1; xi++) {
+                for (int yi = -1; yi <= 1; yi++) {
+                    int tx = row + xi;
+                    int ty = col + yi;
+                    if (tx >= 0 && tx < BOARD_SIZE && ty >= 0 && ty < BOARD_SIZE) {
+                        if (player->board[tx][ty] != 'O' && !(xi == 0 && yi == 0)) {
+                            printf("Error: Ship too close to another ship at (%d, %d).\n", tx + 1, ty + 1);
+                            return false;
+                        }
+                    }
+                }
             }
         }
     } else if (orientation == 'V') {
@@ -275,9 +289,23 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            if (player->board[start.row + i][start.col] != 'O') {
-                printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + i + 1, start.col + 1);
+            int row = start.row + i;
+            int col = start.col;
+            if (player->board[row][col] != 'O') {
+                printf("Error: Ship overlaps with another ship at (%d, %d).\n", row + 1, col + 1);
                 return false;
+            }
+            for (int xi = -1; xi <= 1; xi++) {
+                for (int yi = -1; yi <= 1; yi++) {
+                    int tx = row + xi;
+                    int ty = col + yi;
+                    if (tx >= 0 && tx < BOARD_SIZE && ty >= 0 && ty < BOARD_SIZE) {
+                        if (player->board[tx][ty] != 'O' && !(xi == 0 && yi == 0)) {
+                            printf("Error: Ship too close to another ship at (%d, %d).\n", tx + 1, ty + 1);
+                            return false;
+                        }
+                    }
+                }
             }
         }
     } else {
