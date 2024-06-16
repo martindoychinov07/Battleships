@@ -45,8 +45,8 @@ bool destroyed(Player *player, Ship *ship);
 void fill_board(Player *player, Ship ship);
 void load_configuration(Player *player, const char *filename);
 void manual_configuration(Player *player);
-void play_game(Player *player1, Player *player2, char* replayFile);
-void play_game_vs_bot(Player *player, Player *bot, char* replayFile);
+void play_game(Player *player1, Player *player2);
+void play_game_vs_bot(Player *player, Player *bot);
 bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
@@ -55,9 +55,6 @@ bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
 int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
 int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
-
-char* initializeReplay();
-void recordStep(char* file, Player* p1, Player* p2, int stepNumber);
 
 int main() {
     srand(time(NULL));
@@ -100,10 +97,7 @@ int main() {
             manual_configuration(&player2);
         }
 
-        char replayFile[100];
-        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
-
-        play_game(&player1, &player2, replayFile);
+        play_game(&player1, &player2);
     }
     else if(mode == 's') {
         Player player, bot;
@@ -124,7 +118,7 @@ int main() {
         }
 
         randomShips(bot.own_display);
-
+        
         for(int i = 0; i < BOARD_SIZE; i++) {
             for(int j = 0; j < BOARD_SIZE; j++) {
                 bot.board[i][j] = bot.own_display[i][j];
@@ -138,10 +132,7 @@ int main() {
         //     printf("\n");
         // }
 
-        char replayFile[100];
-        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
-
-        play_game_vs_bot(&player, &bot, replayFile);
+        play_game_vs_bot(&player, &bot);
     }
 
     return 0;
@@ -273,23 +264,9 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            int row = start.row;
-            int col = start.col + i;
-            if (player->board[row][col] != 'O') {
-                printf("Error: Ship overlaps with another ship at (%d, %d).\n", row + 1, col + 1);
+            if (player->board[start.row][start.col + i] != 'O') {
+                printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + 1, start.col + i + 1);
                 return false;
-            }
-            for (int xi = -1; xi <= 1; xi++) {
-                for (int yi = -1; yi <= 1; yi++) {
-                    int tx = row + xi;
-                    int ty = col + yi;
-                    if (tx >= 0 && tx < BOARD_SIZE && ty >= 0 && ty < BOARD_SIZE) {
-                        if (player->board[tx][ty] != 'O' && !(xi == 0 && yi == 0)) {
-                            printf("Error: Ship too close to another ship at (%d, %d).\n", tx + 1, ty + 1);
-                            return false;
-                        }
-                    }
-                }
             }
         }
     } else if (orientation == 'V') {
@@ -298,23 +275,9 @@ bool is_valid_position(Player *player, int size, char orientation, Coordinate st
             return false;
         }
         for (int i = 0; i < size; i++) {
-            int row = start.row + i;
-            int col = start.col;
-            if (player->board[row][col] != 'O') {
-                printf("Error: Ship overlaps with another ship at (%d, %d).\n", row + 1, col + 1);
+            if (player->board[start.row + i][start.col] != 'O') {
+                printf("Error: Ship overlaps with another ship at (%d, %d).\n", start.row + i + 1, start.col + 1);
                 return false;
-            }
-            for (int xi = -1; xi <= 1; xi++) {
-                for (int yi = -1; yi <= 1; yi++) {
-                    int tx = row + xi;
-                    int ty = col + yi;
-                    if (tx >= 0 && tx < BOARD_SIZE && ty >= 0 && ty < BOARD_SIZE) {
-                        if (player->board[tx][ty] != 'O' && !(xi == 0 && yi == 0)) {
-                            printf("Error: Ship too close to another ship at (%d, %d).\n", tx + 1, ty + 1);
-                            return false;
-                        }
-                    }
-                }
             }
         }
     } else {
@@ -428,10 +391,9 @@ void manual_configuration(Player *player) {
     }
 }
 
-void play_game(Player *player1, Player *player2, char* replayFile) {
+void play_game(Player *player1, Player *player2) {
     Player *current_player = player1;
     Player *opponent = player2;
-    int step = 1;
 
     while (true) {
         bool hit = true;
@@ -439,7 +401,6 @@ void play_game(Player *player1, Player *player2, char* replayFile) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
             view_board(current_player, false);
-            if(current_player == player1)recordStep(replayFile, player1, player2, step++);
         }
 
         if (all_ships_destroyed(opponent)) {
@@ -457,10 +418,9 @@ void play_game(Player *player1, Player *player2, char* replayFile) {
 // 
 // 
 
-void play_game_vs_bot(Player *player, Player *bot, char* replayFile) {
+void play_game_vs_bot(Player *player, Player *bot) {
     Player *current_player = player;
     Player *opponent = bot;
-    int step = 1;
 
     while (true) {
         bool hit = true;
@@ -509,7 +469,6 @@ void play_game_vs_bot(Player *player, Player *bot, char* replayFile) {
                 hit = player_turn(current_player, opponent);
             }
             view_board(player, false);
-            if(current_player == player)recordStep(replayFile, player, bot, step++);
         }
 
 
@@ -653,58 +612,4 @@ bool all_ships_destroyed(Player *player) {
         }
     }
     return true;
-}
-char* initializeReplay(){
-    char choice;
-    printf("\nWould you like to save a replay of the game? (y/n/default - n): ");
-    scanf(" %c", &choice);
-
-    if(choice == 'y'){
-        char filename[100];
-        while(true){
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            getchar();
-
-            FILE* f = fopen(filename, "r+");
-            fseek(f, 0, SEEK_END);
-            if(ftell(f) != 0){
-                printf("File isn't empty. Would you like to override it? (y/n/default - n): ");
-                scanf("%c", &choice);
-                if(choice == 'y'){
-                    fclose(f);
-                    f = fopen(filename, "w");
-                    fclose(f);
-                    char* allocatedFilename = (char*)malloc(strlen(filename) + 1);
-                    strcpy(allocatedFilename, filename);
-                    return allocatedFilename;
-                }
-            }else{
-                fclose(f);
-                char* allocatedFilename = (char*)malloc(strlen(filename) + 1);
-                strcpy(allocatedFilename, filename);
-                return allocatedFilename;
-            }
-        }   
-    }else return NULL;
-}
-
-void recordStep(char* fileName, Player* p1, Player* p2, int stepNumber){
-    if(fileName == NULL)return;
-
-    FILE* file = fopen(fileName, "a");
-    fprintf(file, "%d\n", stepNumber);
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for(int j = 0; j < BOARD_SIZE; j++) {
-            fprintf(file, "%c", p1->own_display[i][j]);
-        }
-        fprintf(file,"\n");
-    }
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for(int j = 0; j < BOARD_SIZE; j++) {
-            fprintf(file, "%c", p2->own_display[i][j]);
-        }
-        fprintf(file,"\n");
-    }
-    fclose(file);
 }
