@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #define BOARD_SIZE 10
 #define NUM_SHIPS 10
@@ -44,8 +45,8 @@ bool destroyed(Player *player, Ship *ship);
 void fill_board(Player *player, Ship ship);
 void load_configuration(Player *player, const char *filename);
 void manual_configuration(Player *player);
-void play_game(Player *player1, Player *player2, FILE *replayFile);
-void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile);
+void play_game(Player *player1, Player *player2, char* replayFile);
+void play_game_vs_bot(Player *player, Player *bot, char* replayFile);
 bool player_turn(Player *current, Player *opponent);
 void edit_ship(Player *player);
 void view_board(Player *player, bool during_configuration);
@@ -55,10 +56,11 @@ int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
 int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
 
-FILE* initializeReplay();
-void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber);
+char* initializeReplay();
+void recordStep(char* file, Player* p1, Player* p2, int stepNumber);
 
 int main() {
+    srand(time(NULL));
     char mode;
 
     printf("To play multiplayer press(m) and to play singleplayer press(s):");
@@ -98,7 +100,8 @@ int main() {
             manual_configuration(&player2);
         }
 
-        FILE* replayFile = initializeReplay();
+        char replayFile[100];
+        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
 
         play_game(&player1, &player2, replayFile);
     }
@@ -122,7 +125,21 @@ int main() {
 
         randomShips(bot.own_display);
 
-        FILE* replayFile = initializeReplay();
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                bot.board[i][j] = bot.own_display[i][j];
+            }
+        }
+
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                printf("%c ", bot.own_display[i][j]);
+            }
+            printf("\n");
+        }
+
+        char replayFile[100];
+        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
 
         play_game_vs_bot(&player, &bot, replayFile);
     }
@@ -377,7 +394,7 @@ void manual_configuration(Player *player) {
     }
 }
 
-void play_game(Player *player1, Player *player2, FILE *replayFile) {
+void play_game(Player *player1, Player *player2, char* replayFile) {
     Player *current_player = player1;
     Player *opponent = player2;
     int step = 1;
@@ -393,7 +410,6 @@ void play_game(Player *player1, Player *player2, FILE *replayFile) {
 
         if (all_ships_destroyed(opponent)) {
             printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
-            fclose(replayFile);
             break;
         }
 
@@ -407,7 +423,7 @@ void play_game(Player *player1, Player *player2, FILE *replayFile) {
 // 
 // 
 
-void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile) {
+void play_game_vs_bot(Player *player, Player *bot, char* replayFile) {
     Player *current_player = player;
     Player *opponent = bot;
     int step = 1;
@@ -415,16 +431,45 @@ void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile) {
     while (true) {
         bool hit = true;
         while (hit) {
+
+            bool botDestroyed = true;
+            bool playerDestroyed = true;
+
+            for(int i = 0; i < BOARD_SIZE; i++) {
+                for(int j = 0; j < BOARD_SIZE; j++) {
+                    if(bot->own_display[i][j] == 'S') {
+                        botDestroyed = false;
+                    }
+                }
+            }
+            
+            for(int i = 0; i < BOARD_SIZE; i++) {
+                for(int j = 0; j < BOARD_SIZE; j++) {
+                    if(player->own_display[i][j] == 'S') {
+                        playerDestroyed = false;
+                    }
+                }
+            }
+
+            if (botDestroyed) {
+                printf("Player wins!\n");
+                return;
+            }
+            else if(playerDestroyed) {
+                printf("Bot wins!\n");
+                return;
+            }
+
             printf("Player %d's turn:\n", (current_player == player) ? 1 : 2);
             if(current_player == bot) {
                 hit = botAttack(player->own_display);
 
-                for(int i = 0; i < BOARD_SIZE; i++) {
-                    for(int j = 0; j < BOARD_SIZE; j++) {
-                        printf("%c", player->own_display[i][j]);
-                    }
-                    printf("\n");
-                }
+                // for(int i = 0; i < BOARD_SIZE; i++) {
+                //     for(int j = 0; j < BOARD_SIZE; j++) {
+                //         printf("%c", player->own_display[i][j]);
+                //     }
+                //     printf("\n");
+                // }
             }
             else {
                 hit = player_turn(current_player, opponent);
@@ -433,21 +478,6 @@ void play_game_vs_bot(Player *player, Player *bot, FILE *replayFile) {
             if(current_player == player)recordStep(replayFile, player, bot, step++);
         }
 
-        bool destroyed = true;
-
-        for(int i = 0; i < BOARD_SIZE; i++) {
-            for(int j = 0; j < BOARD_SIZE; j++) {
-                if(bot->own_display[i][j] != 'O') {
-                    destroyed = false;
-                }
-            }
-        }
-
-        if (destroyed || all_ships_destroyed(player)) {
-            printf("Player %d wins!\n", (current_player == player) ? 1 : 2);
-            fclose(replayFile);
-            break;
-        }
 
         Player *temp = current_player;
         current_player = opponent;
@@ -586,7 +616,7 @@ bool all_ships_destroyed(Player *player) {
     }
     return true;
 }
-FILE* initializeReplay(){
+char* initializeReplay(){
     char choice;
     printf("\nWould you like to save a replay of the game? (y/n/default - n): ");
     scanf(" %c", &choice);
@@ -606,20 +636,25 @@ FILE* initializeReplay(){
                 if(choice == 'y'){
                     fclose(f);
                     f = fopen(filename, "w");
-                    return f;
+                    fclose(f);
+                    char* allocatedFilename = (char*)malloc(strlen(filename) + 1);
+                    strcpy(allocatedFilename, filename);
+                    return allocatedFilename;
                 }
             }else{
                 fclose(f);
-                f = fopen(filename, "w");
-                return f;
+                char* allocatedFilename = (char*)malloc(strlen(filename) + 1);
+                strcpy(allocatedFilename, filename);
+                return allocatedFilename;
             }
         }   
     }else return NULL;
 }
 
-void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber){
-    if(file == NULL)return;
+void recordStep(char* fileName, Player* p1, Player* p2, int stepNumber){
+    if(fileName == NULL)return;
 
+    FILE* file = fopen(fileName, "a");
     fprintf(file, "%d\n", stepNumber);
     fprintf(file, "p1\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -635,5 +670,6 @@ void recordStep(FILE* file, Player* p1, Player* p2, int stepNumber){
         }
         fprintf(file,"\n");
     }
+    fclose(file);
     printf("\nWrote in file");
 }
