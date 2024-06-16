@@ -405,7 +405,7 @@ void play_game(Player *player1, Player *player2, char* replayFile) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
             view_board(current_player, false);
-            recordStep(replayFile, player1, player2, step++);
+            if(current_player == player1)recordStep(replayFile, player1, player2, step++);
         }
 
         if (all_ships_destroyed(opponent)) {
@@ -660,20 +660,17 @@ void recordStep(char* fileName, Player* p1, Player* p2, int stepNumber){
 
     FILE* file = fopen(fileName, "a");
     fprintf(file, "%d\n", stepNumber);
-    fprintf(file, "p1\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
         for(int j = 0; j < BOARD_SIZE; j++) {
-            fprintf(file, "%c ", p1->own_display[i][j]);
+            fprintf(file, "%c", p1->own_display[i][j]);
         }
         fprintf(file,"\n");
     }
-    fprintf(file, "p2\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
         for(int j = 0; j < BOARD_SIZE; j++) {
-            fprintf(file, "%c ", p2->own_display[i][j]);
+            fprintf(file, "%c", p2->own_display[i][j]);
         }
         fprintf(file,"\n");
     }
     fclose(file);
-    printf("\nWrote in file");
 }
