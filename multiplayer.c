@@ -485,7 +485,11 @@ bool player_turn(Player *current, Player *opponent) {
         guess.row--;
         guess.col--;
         if (guess.row >= 0 && guess.row < BOARD_SIZE && guess.col >= 0 && guess.col < BOARD_SIZE) {
-            valid_guess = true;
+            if (current->display[guess.row][guess.col] == 'X' || current->display[guess.row][guess.col] == '*') {
+                printf("Error: This position has already been guessed. Try again.\n");
+            } else {
+                valid_guess = true;
+            }
         } else {
             printf("Invalid coordinates. Try again.\n");
         }
