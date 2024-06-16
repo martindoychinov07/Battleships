@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define BOARD_SIZE 10
-
-typedef struct {
-    char p1Board[BOARD_SIZE][BOARD_SIZE];
-    char p2Board[BOARD_SIZE][BOARD_SIZE];
-}readInfo;
+#include "replay.h"
 
 readInfo readStep(char* filename, int moveNumber){
     FILE *f = fopen(filename, "r");
@@ -82,11 +73,4 @@ void playReplay(char* filename){
     }
 
     fclose(f);
-}
-
-int main(){
-    char filename[100];
-    printf("Enter file name: ");
-    scanf("%s", filename);
-    playReplay(filename);
 }

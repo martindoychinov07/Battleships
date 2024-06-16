@@ -1,151 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <time.h>
+#include "game.h"
+#include "encryption.h"
 
-#define BOARD_SIZE 10
-#define NUM_SHIPS 10
-
-typedef struct {
-    int row;
-    int col;
-} Coordinate;
-
-typedef struct {
-    int size;
-    char orientation;
-    Coordinate *coordinates;
-    bool destroyed;
-} Ship;
-
-typedef struct {
-    int num_ships;
-    Ship ships[NUM_SHIPS];
-    char board[BOARD_SIZE][BOARD_SIZE];
-    char display[BOARD_SIZE][BOARD_SIZE]; 
-    char own_display[BOARD_SIZE][BOARD_SIZE]; 
-} Player;
-
-struct ShipArr {
-    int size;
-    int count;
-};
-
-typedef struct ShipArr ShipArr;
-
-ShipArr ships[] = {{6, 1}, {4, 2}, {3, 3}, {2, 4}};
-
-void initialize_board(Player *player);
-void print_board(char board[BOARD_SIZE][BOARD_SIZE]);
-bool place_ship(Player *player, int size, char orientation, Coordinate start);
-bool is_valid_position(Player *player, int size, char orientation, Coordinate start);
-bool contains(Ship ship, Coordinate location);
-bool destroyed(Player *player, Ship *ship);
-void fill_board(Player *player, Ship ship);
-void load_configuration(Player *player, const char *filename);
-void manual_configuration(Player *player);
-void play_game(Player *player1, Player *player2, char* replayFile);
-void play_game_vs_bot(Player *player, Player *bot, char* replayFile);
-bool player_turn(Player *current, Player *opponent);
-void edit_ship(Player *player);
-void view_board(Player *player, bool during_configuration);
-bool all_ships_destroyed(Player *player);
-bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]);
-int validPos(char board[BOARD_SIZE][BOARD_SIZE], int x, int y);
-int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char dir);
-void randomShips(char board[BOARD_SIZE][BOARD_SIZE]);
-
-char* initializeReplay();
-void recordStep(char* file, Player* p1, Player* p2, int stepNumber);
-
-int main() {
-    srand(time(NULL));
-    char mode;
-
-    printf("To play multiplayer press(m) and to play singleplayer press(s):");
-    scanf("%c", &mode);
-
-    while(mode != 'm' && mode !='s') {
-        printf("Wrong choice! Please try again!");
-        printf("To play multiplayer press(m) and to play singleplayer press(s):");
-        scanf("%c", &mode);
-    }
-
-    if(mode == 'm') {
-        Player player1, player2;
-        initialize_board(&player1);
-        initialize_board(&player2);
-
-        char choice;
-        printf("Player 1: Do you want to load a configuration from a file? (y/n): ");
-        scanf(" %c", &choice);
-        if (choice == 'y') {
-            char filename[100];
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            load_configuration(&player1, filename);
-        } else {
-            manual_configuration(&player1);
-        }
-
-        printf("Player 2: Do you want to load a configuration from a file? (y/n): ");
-        scanf(" %c", &choice);
-        if (choice == 'y') {
-            char filename[100];
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            load_configuration(&player2, filename);
-        } else {
-            manual_configuration(&player2);
-        }
-
-        char replayFile[100];
-        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
-
-        play_game(&player1, &player2, replayFile);
-    }
-    else if(mode == 's') {
-        Player player, bot;
-
-        initialize_board(&player);
-        initialize_board(&bot);
-
-        char choice;
-        printf("Player: Do you want to load a configuration from a file? (y/n): ");
-        scanf(" %c", &choice);
-        if (choice == 'y') {
-            char filename[100];
-            printf("Enter filename: ");
-            scanf("%s", filename);
-            load_configuration(&player, filename);
-        } else {
-            manual_configuration(&player);
-        }
-
-        randomShips(bot.own_display);
-
-        for(int i = 0; i < BOARD_SIZE; i++) {
-            for(int j = 0; j < BOARD_SIZE; j++) {
-                bot.board[i][j] = bot.own_display[i][j];
-            }
-        }
-
-        // for(int i = 0; i < BOARD_SIZE; i++) {
-        //     for(int j = 0; j < BOARD_SIZE; j++) {
-        //         printf("%c ", bot.own_display[i][j]);
-        //     }
-        //     printf("\n");
-        // }
-
-        char replayFile[100];
-        memcpy(replayFile, initializeReplay(), sizeof(replayFile));
-
-        play_game_vs_bot(&player, &bot, replayFile);
-    }
-
-    return 0;
-}
+ShipArr shipsArr[] = {{6, 1}, {4, 2}, {3, 3}, {2, 4}};
 
 bool botAttack(char playerBoard[BOARD_SIZE][BOARD_SIZE]) {
     int x = rand() % BOARD_SIZE;
@@ -198,21 +54,21 @@ int validArea(char board[BOARD_SIZE][BOARD_SIZE], int x, int y, int size, char d
 }
 
 void randomShips(char board[BOARD_SIZE][BOARD_SIZE]) {
-    int count = (sizeof(ships) / sizeof(ships[0]));
+    int count = (sizeof(shipsArr) / sizeof(shipsArr[0]));
 
     for (int i = 0; i < count; i++) {
-        for (int j = 0; j < ships[i].count; j++) {
+        for (int j = 0; j < shipsArr[i].count; j++) {
             int x = rand() % BOARD_SIZE;
             int y = rand() % BOARD_SIZE;
             char dir = "UDLR"[rand() % 4];
 
-            while (validArea(board, x, y, ships[i].size, dir) == 0) {
+            while (validArea(board, x, y, shipsArr[i].size, dir) == 0) {
                 x = rand() % BOARD_SIZE;
                 y = rand() % BOARD_SIZE;
                 dir = "UDLR"[rand() % 4];
             }
 
-            for (int m = 0; m < ships[i].size; m++) {
+            for (int m = 0; m < shipsArr[i].size; m++) {
                 if (dir == 'U') {
                     board[y - m][x] = 'S';
                 }
@@ -435,6 +291,7 @@ void play_game(Player *player1, Player *player2, char* replayFile) {
 
     while (true) {
         bool hit = true;
+
         while (hit) {
             printf("Player %d's turn:\n", (current_player == player1) ? 1 : 2);
             hit = player_turn(current_player, opponent);
@@ -444,6 +301,12 @@ void play_game(Player *player1, Player *player2, char* replayFile) {
 
         if (all_ships_destroyed(opponent)) {
             printf("Player %d wins!\n", (current_player == player1) ? 1 : 2);
+            if(replayFile!=NULL){
+                char password[100];
+                printf("Enter password for replay encryption: ");
+                scanf("%s", password);
+                encrypt(replayFile, password);
+            }
             break;
         }
 
