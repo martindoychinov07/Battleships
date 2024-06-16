@@ -236,13 +236,19 @@ void initialize_board(Player *player) {
 
 void print_board(char board[BOARD_SIZE][BOARD_SIZE]) {
     printf("\n  ");
+    printf(" ");
     for (int i = 0; i < BOARD_SIZE; i++) {
-        printf("%d ", i);
+        printf("%d ", i + 1);
     }
     printf("\n");
 
     for (int r = 0; r < BOARD_SIZE; r++) {
-        printf("%d ", r);
+        if(r + 1 < 10) {
+            printf("%d  ", r + 1);
+        }
+        else {
+            printf("%d ", r + 1);
+        }
         for (int c = 0; c < BOARD_SIZE; c++) {
             printf("%c ", board[r][c]);
         }
