@@ -125,12 +125,12 @@ int main() {
             }
         }
 
-        // for(int i = 0; i < BOARD_SIZE; i++) {
-        //     for(int j = 0; j < BOARD_SIZE; j++) {
-        //         printf("%c ", bot.own_display[i][j]);
-        //     }
-        //     printf("\n");
-        // }
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                printf("%c ", bot.own_display[i][j]);
+            }
+            printf("\n");
+        }
 
         play_game_vs_bot(&player, &bot);
     }
@@ -419,16 +419,45 @@ void play_game_vs_bot(Player *player, Player *bot) {
     while (true) {
         bool hit = true;
         while (hit) {
+
+            bool botDestroyed = true;
+            bool playerDestroyed = true;
+
+            for(int i = 0; i < BOARD_SIZE; i++) {
+                for(int j = 0; j < BOARD_SIZE; j++) {
+                    if(bot->own_display[i][j] == 'S') {
+                        botDestroyed = false;
+                    }
+                }
+            }
+            
+            for(int i = 0; i < BOARD_SIZE; i++) {
+                for(int j = 0; j < BOARD_SIZE; j++) {
+                    if(player->own_display[i][j] == 'S') {
+                        playerDestroyed = false;
+                    }
+                }
+            }
+
+            if (botDestroyed) {
+                printf("Player wins!\n");
+                return;
+            }
+            else if(playerDestroyed) {
+                printf("Bot wins!\n");
+                return;
+            }
+
             printf("Player %d's turn:\n", (current_player == player) ? 1 : 2);
             if(current_player == bot) {
                 hit = botAttack(player->own_display);
 
-                for(int i = 0; i < BOARD_SIZE; i++) {
-                    for(int j = 0; j < BOARD_SIZE; j++) {
-                        printf("%c", player->own_display[i][j]);
-                    }
-                    printf("\n");
-                }
+                // for(int i = 0; i < BOARD_SIZE; i++) {
+                //     for(int j = 0; j < BOARD_SIZE; j++) {
+                //         printf("%c", player->own_display[i][j]);
+                //     }
+                //     printf("\n");
+                // }
             }
             else {
                 hit = player_turn(current_player, opponent);
@@ -436,20 +465,6 @@ void play_game_vs_bot(Player *player, Player *bot) {
             view_board(player, false);
         }
 
-        bool destroyed = true;
-
-        for(int i = 0; i < BOARD_SIZE; i++) {
-            for(int j = 0; j < BOARD_SIZE; j++) {
-                if(bot->own_display[i][j] != 'O') {
-                    destroyed = false;
-                }
-            }
-        }
-
-        if (destroyed || all_ships_destroyed(player)) {
-            printf("Player %d wins!\n", (current_player == player) ? 1 : 2);
-            break;
-        }
 
         Player *temp = current_player;
         current_player = opponent;
